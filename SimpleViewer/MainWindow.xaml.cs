@@ -24,9 +24,15 @@ namespace SimpleViewer
     /// </summary>
     public partial class MainWindow : Window
     {
-        private SeqImageFiles _seqImageFiles;
+        private ImageCache _imageCache;
         private DispatcherTimer _timer;
+        private DispatcherTimer _cacheClearTimer;
         private bool _isPlaying = false;
+
+        // デバッグ用
+        private DebugWindow _debugWindow = new DebugWindow();
+        private DispatcherTimer _debugTimer;
+
 
         public MainWindow()
         {
@@ -50,6 +56,8 @@ namespace SimpleViewer
                     TextBoxImageFolder.Text = paths[0];
                 }
             };
+            this.ButtonMove.Click += ButtonMove_Click;
+
             this.ButtonBwdFast.Click += ButtonBwdFast_Click;
             this.ButtonBwdSingle.Click += ButtonBwdSingle_Click;
             this.ButtonFwdSingle.Click += ButtonFwdSingle_Click;
@@ -61,6 +69,49 @@ namespace SimpleViewer
 
             this.TextBoxRefreshTime.Text = "0.5";
             this.TextBoxSkipCount.Text = "10";
+            this.TextBoxSkipCount.TextChanged += TextBoxSkipCount_TextChanged;
+
+            this.ButtonClearCache.Click += ButtonClearCache_Click;
+
+            _cacheClearTimer = new DispatcherTimer();
+            _cacheClearTimer.Interval = TimeSpan.FromSeconds(10);
+            _cacheClearTimer.Tick += _cacheClearTimer_Tick;
+            _cacheClearTimer.Start();
+
+
+            // デバッグ用
+            _debugWindow.Show();
+            _debugTimer = new DispatcherTimer();
+            _debugTimer.Interval = TimeSpan.FromSeconds(1);
+            _debugTimer.Tick += _debugTimer_Tick;
+            _debugTimer.Start();
+        }
+
+        private void _cacheClearTimer_Tick(object sender, EventArgs e)
+        {
+            if (_imageCache == null)
+            {
+                return;
+            }
+
+            _imageCache.ClearCache();
+        }
+
+        private void ButtonClearCache_Click(object sender, RoutedEventArgs e)
+        {
+            _imageCache.ClearCache();
+        }
+
+        private void _debugTimer_Tick(object sender, EventArgs e)
+        {
+            if (_imageCache == null)
+            {
+                return;
+            }
+
+            var status = _imageCache.DebugGetStatus();
+            var imageStore = _imageCache.DebugGetImageStore();
+            _debugWindow.ShowStatus(status, imageStore);
         }
 
         private void ButtonPlayPause_Click(object sender, RoutedEventArgs e)
@@ -81,6 +132,9 @@ namespace SimpleViewer
                 {
                     MessageBox.Show("更新間隔は正の実数を指定して下さい");
                 }
+                // 前後のキャッシュは最小限にする
+                _imageCache.CasheImages(2, 2, SkipCount());
+
                 _timer = new DispatcherTimer();
                 _timer.Interval = TimeSpan.FromSeconds(interval);
                 _timer.Tick += _timer_Tick;
@@ -98,7 +152,11 @@ namespace SimpleViewer
 
         private async void _timer_Tick(object sender, EventArgs e)
         {
-            if(!( await SetImage(SkipCount())))
+            if (await SetImageByOffsetAsync(SkipCount()))
+            {
+                _imageCache.CasheImages(1, 1, SkipCount());
+            }
+            else
             {
                 TimerStop();
             }
@@ -110,33 +168,54 @@ namespace SimpleViewer
             {
                 return;
             }
-            _seqImageFiles = new SeqImageFiles(TextBoxImageFolder.Text.Trim());
+            _imageCache = new ImageCache(TextBoxImageFolder.Text.Trim());
 
-            // 暫定的にスキップ数の２倍をキャッシュ対象とする。ただし最低でも11枚。
-            var cacheCount = Math.Min( SkipCount() * 2, 11);
-            LabelFileCount.Content = $"/ {_seqImageFiles.Prepare(cacheCount, cacheCount).ToString()}";
+            var fileCount = _imageCache.Prepare();
 
-            _ = await SetImage(0);
+            _imageCache.CasheImages(5, 5, SkipCount());
+
+            LabelFileCount.Content = $"/ {fileCount}";
+
+            _ = await SetImageByOffsetAsync(0);
+        }
+
+        private void TextBoxSkipCount_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            _imageCache.CasheImages(5, 5, SkipCount());
+        }
+
+        private async void ButtonMove_Click(object sender, RoutedEventArgs e)
+        {
+            int no = 0;
+            if (int.TryParse(TextBoxFileNo.Text.Trim(), out no))
+            {
+                var offset = no - 1 - _imageCache.CurrentIndex;
+                _ = await SetImageByOffsetAsync(offset);
+                _imageCache.CasheImages(5, 5, 0);
+            }
         }
 
         private async void ButtonFwdFast_Click(object sender, RoutedEventArgs e)
         {
-            _ = await SetImage(SkipCount());
+            _ = await SetImageByOffsetAsync(SkipCount());
+            _imageCache.CasheImages(2, 2, SkipCount());
         }
 
         private async void ButtonFwdSingle_Click(object sender, RoutedEventArgs e)
         {
-            _ = await SetImage(1);
+            _ = await SetImageByOffsetAsync(1);
+            _imageCache.CasheImages(5, 5, 0);
         }
 
         private async void ButtonBwdSingle_Click(object sender, RoutedEventArgs e)
         {
-            _ = await SetImage(-1);
+            _ = await SetImageByOffsetAsync(-1);
+            _imageCache.CasheImages(5, 5, 0);
         }
 
         private async void ButtonBwdFast_Click(object sender, RoutedEventArgs e)
         {
-            _ = await SetImage(-1 * SkipCount());
+            _ = await SetImageByOffsetAsync(-1 * SkipCount());
         }
 
         private int SkipCount()
@@ -152,15 +231,17 @@ namespace SimpleViewer
             }
         }
 
-        private async Task<bool> SetImage(int offset)
+
+
+        private async Task<bool> SetImageByOffsetAsync(int offset)
         {
             var imageThumb1 = thumb1.Template.FindName("imageThumb1", thumb1) as Image;
-            var bitmap = await _seqImageFiles.GetImageAsync(offset);
+            var bitmap = await _imageCache.GetImageAsync(offset);
             if (bitmap != null)
             {
                 imageThumb1.Source = bitmap;
-                TextBoxFileNo.Text = (_seqImageFiles.CurrentIndex + 1).ToString();
-                TextBoxFileName.Text = _seqImageFiles.CurrentFileName;
+                TextBoxFileNo.Text = (_imageCache.CurrentIndex + 1).ToString();
+                TextBoxFileName.Text = _imageCache.CurrentFileName;
                 return true;
             }
             else
@@ -171,6 +252,7 @@ namespace SimpleViewer
                 return false;
             }
         }
+
 
         private void Thumb1_DragDelta(object sender, DragDeltaEventArgs e)
         {
@@ -192,11 +274,11 @@ namespace SimpleViewer
             double scale;
             if (0 < e.Delta)
             {
-                scale = 0.8;  // 20%の倍率で縮小
+                scale = 1.2;
             }
             else
             {
-                scale = 1.2;  // 20%の倍率で拡大
+                scale = 0.8;
             }
 
             var imageThumb1 = thumb1.Template.FindName("imageThumb1", thumb1) as Image;
@@ -206,12 +288,12 @@ namespace SimpleViewer
             imageThumb1.Width = imageThumb1.ActualWidth * scale;
 
             // マウス位置が中心になるようにスクロールバーの位置を調整
-            Point mousePoint = e.GetPosition(scrollViewer);
-            double x_barOffset = (scrollViewer.HorizontalOffset + mousePoint.X) * scale - mousePoint.X;
-            scrollViewer.ScrollToHorizontalOffset(x_barOffset);
+            //Point mousePoint = e.GetPosition(scrollViewer);
+            //double x_barOffset = (scrollViewer.HorizontalOffset + mousePoint.X) * scale - mousePoint.X;
+            //scrollViewer.ScrollToHorizontalOffset(x_barOffset);
 
-            double y_barOffset = (scrollViewer.VerticalOffset + mousePoint.Y) * scale - mousePoint.Y;
-            scrollViewer.ScrollToVerticalOffset(y_barOffset);
+            //double y_barOffset = (scrollViewer.VerticalOffset + mousePoint.Y) * scale - mousePoint.Y;
+            //scrollViewer.ScrollToVerticalOffset(y_barOffset);
         }
     }
 }

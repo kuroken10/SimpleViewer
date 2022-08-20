@@ -12,6 +12,7 @@
         <StackPanel Orientation="Horizontal" Height="20" VerticalAlignment="Top" Margin="0,25,0,0">
             <TextBox x:Name="TextBoxFileNo" Width="50" Margin="30, 0, 0, 0"></TextBox>
             <Label x:Name="LabelFileCount" Width="50" Height="20" Margin="10, 0" Padding="0"></Label>
+            <Button x:Name="ButtonMove" Content="移動" Margin="0,0,20,0"></Button>
             <Label Width="50" Height="20" Margin="10, 0, 10, 0" Padding="0" Content="ファイル名"></Label>
             <TextBox x:Name="TextBoxFileName" Width="300" Height="20" Margin="10, 0"></TextBox>
 
@@ -26,6 +27,7 @@
             <TextBox x:Name="TextBoxRefreshTime" Width="50" Margin="10, 0"></TextBox>
             <Label Content="スキップ数" Width="60" Margin="20, 0, 0, 0" Padding="0"></Label>
             <TextBox x:Name="TextBoxSkipCount" Width="50" Margin="10, 0"></TextBox>
+            <Button x:Name="ButtonClearCache" Content="キャッシュクリア"></Button>
         </StackPanel>
         <ScrollViewer
             Name="scrollViewer"
