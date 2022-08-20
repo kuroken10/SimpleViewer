@@ -36,7 +36,8 @@ namespace SimpleViewer
             for(int i = 0; i < status.Length; i++)
             {
                 var statusStr = status[i] == null ? "null" : (status[i].IsCompleted ? status[i].Result.ToString() : "not_completed");
-                ConsoleOut($"{i} : {statusStr} | stored : {imageStore.ContainsKey(i)}");
+                var storedStr = imageStore.ContainsKey(i) ? "stored" : "-";
+                ConsoleOut($"{i} : {statusStr} | {storedStr}");
             }
         }
     }

@@ -57,6 +57,7 @@ namespace SimpleViewer
                 }
             };
             this.ButtonMove.Click += ButtonMove_Click;
+            this.TextBoxFileNo.KeyDown += TextBoxFileNo_KeyDown;
 
             this.ButtonBwdFast.Click += ButtonBwdFast_Click;
             this.ButtonBwdSingle.Click += ButtonBwdSingle_Click;
@@ -86,6 +87,7 @@ namespace SimpleViewer
             _debugTimer.Tick += _debugTimer_Tick;
             _debugTimer.Start();
         }
+
 
         private void _cacheClearTimer_Tick(object sender, EventArgs e)
         {
@@ -184,7 +186,20 @@ namespace SimpleViewer
             _imageCache.CasheImages(5, 5, SkipCount());
         }
 
-        private async void ButtonMove_Click(object sender, RoutedEventArgs e)
+        private void ButtonMove_Click(object sender, RoutedEventArgs e)
+        {
+            JumpAsync();
+        }
+
+        private void TextBoxFileNo_KeyDown(object sender, KeyEventArgs e)
+        {
+            if(e.Key == Key.Enter)
+            {
+                JumpAsync();
+            }
+        }
+
+        private async void JumpAsync()
         {
             int no = 0;
             if (int.TryParse(TextBoxFileNo.Text.Trim(), out no))
@@ -193,7 +208,9 @@ namespace SimpleViewer
                 _ = await SetImageByOffsetAsync(offset);
                 _imageCache.CasheImages(5, 5, 0);
             }
+
         }
+
 
         private async void ButtonFwdFast_Click(object sender, RoutedEventArgs e)
         {
