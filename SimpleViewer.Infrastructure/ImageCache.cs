@@ -87,7 +87,7 @@ namespace SimpleViewer.Infrastructure
             return _files.Length;
         }
 
-        public void CasheImages(int fwdCount, int bwdCount, int skipCount)
+        public void CacheImages(int fwdCount, int bwdCount, int skipCount)
         {
             int min = Math.Max(CurrentIndex - bwdCount, 0);
             int max = Math.Min(CurrentIndex + fwdCount, _files.Length - 1);
