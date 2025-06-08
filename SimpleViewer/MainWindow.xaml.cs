@@ -135,7 +135,7 @@ namespace SimpleViewer
                     MessageBox.Show("更新間隔は正の実数を指定して下さい");
                 }
                 // 前後のキャッシュは最小限にする
-                _imageCache.CasheImages(2, 2, SkipCount());
+                _imageCache.CacheImages(2, 2, SkipCount());
 
                 _timer = new DispatcherTimer();
                 _timer.Interval = TimeSpan.FromSeconds(interval);
@@ -156,7 +156,7 @@ namespace SimpleViewer
         {
             if (await SetImageByOffsetAsync(SkipCount()))
             {
-                _imageCache.CasheImages(1, 1, SkipCount());
+                _imageCache.CacheImages(1, 1, SkipCount());
             }
             else
             {
@@ -174,7 +174,7 @@ namespace SimpleViewer
 
             var fileCount = _imageCache.Prepare();
 
-            _imageCache.CasheImages(5, 5, SkipCount());
+            _imageCache.CacheImages(5, 5, SkipCount());
 
             LabelFileCount.Content = $"/ {fileCount}";
 
@@ -183,7 +183,7 @@ namespace SimpleViewer
 
         private void TextBoxSkipCount_TextChanged(object sender, TextChangedEventArgs e)
         {
-            _imageCache.CasheImages(5, 5, SkipCount());
+            _imageCache.CacheImages(5, 5, SkipCount());
         }
 
         private void ButtonMove_Click(object sender, RoutedEventArgs e)
@@ -206,7 +206,7 @@ namespace SimpleViewer
             {
                 var offset = no - 1 - _imageCache.CurrentIndex;
                 _ = await SetImageByOffsetAsync(offset);
-                _imageCache.CasheImages(5, 5, 0);
+                _imageCache.CacheImages(5, 5, 0);
             }
 
         }
@@ -215,19 +215,19 @@ namespace SimpleViewer
         private async void ButtonFwdFast_Click(object sender, RoutedEventArgs e)
         {
             _ = await SetImageByOffsetAsync(SkipCount());
-            _imageCache.CasheImages(2, 2, SkipCount());
+            _imageCache.CacheImages(2, 2, SkipCount());
         }
 
         private async void ButtonFwdSingle_Click(object sender, RoutedEventArgs e)
         {
             _ = await SetImageByOffsetAsync(1);
-            _imageCache.CasheImages(5, 5, 0);
+            _imageCache.CacheImages(5, 5, 0);
         }
 
         private async void ButtonBwdSingle_Click(object sender, RoutedEventArgs e)
         {
             _ = await SetImageByOffsetAsync(-1);
-            _imageCache.CasheImages(5, 5, 0);
+            _imageCache.CacheImages(5, 5, 0);
         }
 
         private async void ButtonBwdFast_Click(object sender, RoutedEventArgs e)
