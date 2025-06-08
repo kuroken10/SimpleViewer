@@ -166,11 +166,18 @@ namespace SimpleViewer
 
         private async void TextBoxImageFolder_TextChanged(object sender, TextChangedEventArgs e)
         {
-            if (TextBoxImageFolder.Text.Trim() == "")
+            var folder = TextBoxImageFolder.Text.Trim();
+            if (string.IsNullOrWhiteSpace(folder))
             {
                 return;
             }
-            _imageCache = new ImageCache(TextBoxImageFolder.Text.Trim());
+
+            if (!Directory.Exists(folder))
+            {
+                return;
+            }
+
+            _imageCache = new ImageCache(folder);
 
             var fileCount = _imageCache.Prepare();
 
@@ -233,6 +240,7 @@ namespace SimpleViewer
         private async void ButtonBwdFast_Click(object sender, RoutedEventArgs e)
         {
             _ = await SetImageByOffsetAsync(-1 * SkipCount());
+            _imageCache.CasheImages(2, 2, SkipCount());
         }
 
         private int SkipCount()
